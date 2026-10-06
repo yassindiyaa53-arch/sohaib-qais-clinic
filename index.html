@@ -1,100 +1,222 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>عيادة الدكتور صهيب قيس</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>عيادة الدكتور صهيب قيس</title>
 
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: Arial, sans-serif;
-    }
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:Arial,sans-serif}
+body{background:#f6f8fb;color:#172033}
+.app{display:flex;min-height:100vh}
 
-    body {
-      background: #f5f7fa;
-      color: #1f2937;
-    }
+.sidebar{
+width:250px;background:#fff;border-left:1px solid #e7ebf0;
+padding:25px 15px;position:fixed;right:0;top:0;bottom:0
+}
 
-    header {
-      background: #ffffff;
-      padding: 20px 30px;
-      border-bottom: 1px solid #e5e7eb;
-    }
+.logo{padding:10px 15px 30px;text-align:center}
+.logo h2{font-size:20px}
+.logo span{font-size:13px;color:#8791a1}
 
-    header h1 {
-      font-size: 24px;
-    }
+.menu{display:flex;flex-direction:column;gap:7px}
+.menu button{
+border:0;background:transparent;text-align:right;padding:14px 16px;
+border-radius:12px;font-size:15px;cursor:pointer;color:#596579
+}
+.menu button:hover,.menu .active{background:#eef5ff;color:#2374e1}
 
-    header p {
-      color: #6b7280;
-      margin-top: 5px;
-    }
+.content{margin-right:250px;width:calc(100% - 250px);padding:30px}
 
-    main {
-      padding: 30px;
-      max-width: 1200px;
-      margin: auto;
-    }
+.top{
+display:flex;justify-content:space-between;align-items:center;
+margin-bottom:30px
+}
 
-    .cards {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 20px;
-    }
+.top h1{font-size:25px}
+.top p{color:#8993a3;margin-top:6px}
 
-    .card {
-      background: white;
-      padding: 25px;
-      border-radius: 16px;
-      border: 1px solid #e5e7eb;
-    }
+.user{
+background:#fff;padding:10px 15px;border-radius:12px;
+border:1px solid #e7ebf0
+}
 
-    .card h2 {
-      font-size: 18px;
-      margin-bottom: 10px;
-    }
+.cards{
+display:grid;grid-template-columns:repeat(4,1fr);gap:18px
+}
 
-    .card p {
-      color: #6b7280;
-    }
-  </style>
+.card{
+background:#fff;border:1px solid #e7ebf0;border-radius:16px;
+padding:22px
+}
+
+.card .icon{font-size:25px;margin-bottom:15px}
+.card h3{font-size:14px;color:#7a8494;margin-bottom:8px}
+.card strong{font-size:28px}
+
+.section{
+background:#fff;border:1px solid #e7ebf0;border-radius:16px;
+padding:22px;margin-top:25px
+}
+
+.section-title{
+display:flex;justify-content:space-between;align-items:center;
+margin-bottom:20px
+}
+
+.section-title h2{font-size:18px}
+
+.btn{
+border:0;background:#2374e1;color:white;
+padding:11px 18px;border-radius:10px;cursor:pointer
+}
+
+table{width:100%;border-collapse:collapse}
+th,td{padding:15px;text-align:right;border-bottom:1px solid #edf0f4}
+th{color:#7c8797;font-size:13px}
+td{font-size:14px}
+
+@media(max-width:900px){
+.sidebar{width:210px}
+.content{margin-right:210px;width:calc(100% - 210px)}
+.cards{grid-template-columns:repeat(2,1fr)}
+}
+
+@media(max-width:650px){
+.sidebar{position:relative;width:100%;height:auto}
+.app{display:block}
+.content{margin-right:0;width:100%;padding:18px}
+.cards{grid-template-columns:1fr}
+}
+</style>
 </head>
 
 <body>
 
-  <header>
-    <h1>عيادة الدكتور صهيب قيس</h1>
-    <p>نظام إدارة العيادة</p>
-  </header>
+<div class="app">
 
-  <main>
-    <div class="cards">
+<aside class="sidebar">
 
-      <div class="card">
-        <h2>👤 المرضى</h2>
-        <p>إدارة بيانات المرضى وملفاتهم.</p>
-      </div>
+<div class="logo">
+<h2>🦷 عيادة صهيب قيس</h2>
+<span>نظام إدارة العيادة</span>
+</div>
 
-      <div class="card">
-        <h2>📅 المواعيد</h2>
-        <p>إدارة مواعيد المرضى.</p>
-      </div>
+<nav class="menu">
+<button class="active">🏠 الرئيسية</button>
+<button>👥 المرضى</button>
+<button>📅 المواعيد</button>
+<button>🦷 العلاجات</button>
+<button>💰 الحسابات</button>
+<button>📊 التقارير</button>
+<button>⚙️ الإعدادات</button>
+</nav>
 
-      <div class="card">
-        <h2>🦷 العلاجات</h2>
-        <p>متابعة علاجات المرضى.</p>
-      </div>
+</aside>
 
-      <div class="card">
-        <h2>💰 الحسابات</h2>
-        <p>الفواتير والمدفوعات.</p>
-      </div>
+<main class="content">
 
-    </div>
-  </main>
+<div class="top">
+<div>
+<h1>الرئيسية</h1>
+<p>مرحباً بك في نظام إدارة عيادة الدكتور صهيب قيس</p>
+</div>
+
+<div class="user">
+👨‍⚕️ الدكتور صهيب قيس
+</div>
+</div>
+
+<div class="cards">
+
+<div class="card">
+<div class="icon">👥</div>
+<h3>إجمالي المرضى</h3>
+<strong>0</strong>
+</div>
+
+<div class="card">
+<div class="icon">📅</div>
+<h3>مواعيد اليوم</h3>
+<strong>0</strong>
+</div>
+
+<div class="card">
+<div class="icon">💰</div>
+<h3>إيرادات اليوم</h3>
+<strong>0</strong>
+</div>
+
+<div class="card">
+<div class="icon">🧾</div>
+<h3>المبالغ المتبقية</h3>
+<strong>0</strong>
+</div>
+
+</div>
+
+<div class="section">
+
+<div class="section-title">
+<h2>مواعيد اليوم</h2>
+<button class="btn">+ إضافة موعد</button>
+</div>
+
+<table>
+<thead>
+<tr>
+<th>المريض</th>
+<th>الوقت</th>
+<th>نوع الموعد</th>
+<th>الحالة</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td>لا توجد مواعيد</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+</tbody>
+
+</table>
+
+</div>
+
+<div class="section">
+
+<div class="section-title">
+<h2>آخر المرضى</h2>
+<button class="btn">+ إضافة مريض</button>
+</div>
+
+<table>
+<thead>
+<tr>
+<th>اسم المريض</th>
+<th>رقم الهاتف</th>
+<th>آخر زيارة</th>
+<th>الحالة</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td>لا توجد بيانات</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+
+</main>
+
+</div>
 
 </body>
 </html>

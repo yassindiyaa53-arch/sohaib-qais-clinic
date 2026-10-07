@@ -687,6 +687,12 @@ display:none;
 padding:25px;
 }
 }
+
+.patient-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-top:20px;padding-bottom:10px;border-bottom:1px solid var(--border)}
+.patient-tab{border:1px solid var(--border);background:var(--card);color:var(--muted);padding:10px 14px;border-radius:10px;font-size:12px}
+.patient-tab.active{background:var(--primary-light);color:var(--primary);border-color:#bfdbfe}
+.patient-tab-content{display:none;margin-top:18px}
+.patient-tab-content.active{display:block}
 </style>
 </head>
 
@@ -1955,180 +1961,117 @@ $("profileContent").innerHTML=`
 <div class="patient-avatar">👤</div>
 
 <div>
-
 <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
 <h2 style="margin:0">${escapeHTML(p.name)}</h2>
 <button class="btn secondary" onclick="openPatient('${p.id}')">✏️ تعديل البيانات</button>
 </div>
 
+<div class="info-list" style="margin-top:15px">
+<div class="info"><small>الهاتف</small><strong>${escapeHTML(p.phone||"—")}</strong></div>
+<div class="info"><small>الجنس</small><strong>${escapeHTML(p.gender||"—")}</strong></div>
+<div class="info"><small>العمر</small><strong>${calculateAge(p.birth)}</strong></div>
+<div class="info"><small>العنوان</small><strong>${escapeHTML(p.address||"—")}</strong></div>
+</div>
+</div>
+</div>
+
+<div class="patient-tabs">
+<button class="patient-tab active" onclick="switchPatientTab('basic',this)">👤 المعلومات</button>
+<button class="patient-tab" onclick="switchPatientTab('teeth',this)">🦷 الأسنان</button>
+<button class="patient-tab" onclick="switchPatientTab('history',this)">🏥 التاريخ المرضي</button>
+<button class="patient-tab" onclick="switchPatientTab('appointments',this)">📅 المواعيد</button>
+<button class="patient-tab" onclick="switchPatientTab('notes',this)">📝 الملاحظات</button>
+<button class="patient-tab" onclick="switchPatientTab('finance',this)">💰 الحسابات</button>
+</div>
+
+<div id="patientTab-basic" class="patient-tab-content active">
+<div class="card">
+<div class="card-head"><h3>👤 المعلومات الأساسية</h3></div>
 <div class="info-list">
-
-<div class="info">
-
-<small>الهاتف</small>
-
-<strong>${escapeHTML(p.phone||"—")}</strong>
-
+<div class="info"><small>الاسم الكامل</small><strong>${escapeHTML(p.name)}</strong></div>
+<div class="info"><small>تاريخ الميلاد</small><strong>${escapeHTML(p.birth||"—")}</strong></div>
+<div class="info"><small>تاريخ إضافة الملف</small><strong>${p.createdAt?new Date(p.createdAt).toLocaleDateString("ar-IQ"):"—"}</strong></div>
+<div class="info"><small>آخر تحديث</small><strong>${p.updatedAt?new Date(p.updatedAt).toLocaleDateString("ar-IQ"):"—"}</strong></div>
+</div>
+</div>
 </div>
 
-<div class="info">
-
-<small>الجنس</small>
-
-<strong>${escapeHTML(p.gender||"—")}</strong>
-
-</div>
-
-<div class="info">
-
-<small>العمر</small>
-
-<strong>${calculateAge(p.birth)}</strong>
-
-</div>
-
-<div class="info">
-
-<small>تاريخ الإضافة</small>
-
-<strong>
-
-${p.createdAt
-
-?new Date(p.createdAt).toLocaleDateString("ar-IQ")
-
-:"—"}
-
-</strong>
-
-</div>
-
-</div>
-
-</div>
-
-</div>
-
-
-<div class="card" style="margin-top:20px">
-
+<div id="patientTab-teeth" class="patient-tab-content">
+<div class="card">
 <div class="card-head">
-
 <h3>🦷 مخطط الأسنان</h3>
-
-<button class="btn" onclick="saveDentalChart()">
-
-💾 حفظ المخطط
-
-</button>
-
+<button class="btn" onclick="saveDentalChart()">💾 حفظ المخطط</button>
 </div>
-
-
-<p style="
-
-color:var(--muted);
-
-font-size:12px;
-
-margin-bottom:15px;
-
-">
-
-اضغط على السن لتغيير حالته
-
-</p>
-
-
+<p style="color:var(--muted);font-size:12px;margin-bottom:15px">اضغط على السن لتغيير حالته</p>
 <div class="teeth">
-
 ${Array.from({length:32},(_,i)=>{
-
 const number=i+1;
-
 const status=currentTeeth[number] || "سليم";
-
-
-return `
-
-<button
-
-type="button"
-
-class="tooth tooth-${status}"
-
-onclick="setToothStatus(${number})"
-
-id="tooth-${number}"
-
->
-
-<strong>${number}</strong>
-
-<div style="font-size:22px;margin:5px 0">
-
-🦷
-
-</div>
-
-<small>${status}</small>
-
-</button>
-
-`;
-
+return `<button type="button" class="tooth tooth-${status}" onclick="setToothStatus(${number})" id="tooth-${number}"><strong>${number}</strong><div style="font-size:22px;margin:5px 0">🦷</div><small>${status}</small></button>`;
 }).join("")}
-
+</div>
+<div style="margin-top:18px;display:flex;gap:8px;flex-wrap:wrap;font-size:11px">
+<span class="badge green">سليم</span><span class="badge red">تسوس</span><span class="badge blue">حشوة</span><span class="badge yellow">تاج</span><span class="badge red">مفقود</span>
+</div>
+</div>
 </div>
 
-
-<div style="
-
-margin-top:18px;
-
-display:flex;
-
-gap:8px;
-
-flex-wrap:wrap;
-
-font-size:11px;
-
-">
-
-<span class="badge green">سليم</span>
-
-<span class="badge red">تسوس</span>
-
-<span class="badge blue">حشوة</span>
-
-<span class="badge yellow">تاج</span>
-
-<span class="badge red">مفقود</span>
-
-</div>
-
-
-</div>
-
-
-<div class="card" style="margin-top:20px">
+<div id="patientTab-history" class="patient-tab-content">
+<div class="card">
 <div class="card-head"><h3>🏥 التاريخ المرضي</h3></div>
-<p style="color:var(--muted);line-height:1.8;white-space:pre-wrap">${escapeHTML(p.medicalHistory||"لا يوجد تاريخ مرضي مسجل")}</p>
+<p style="color:var(--muted);line-height:1.9;white-space:pre-wrap">${escapeHTML(p.medicalHistory||"لا يوجد تاريخ مرضي مسجل")}</p>
+</div>
 </div>
 
-<div class="card" style="margin-top:20px">
+<div id="patientTab-appointments" class="patient-tab-content">
+<div class="card">
+<div class="card-head"><h3>📅 مواعيد المريض</h3></div>
+<div class="table-wrap"><table>
+<thead><tr><th>التاريخ</th><th>الوقت</th><th>السبب</th><th>الحالة</th></tr></thead>
+<tbody>
+${appointments.filter(a=>a.patientId===p.id).sort((a,b)=>String(b.date||"").localeCompare(String(a.date||""))).map(a=>`<tr><td>${escapeHTML(a.date||"—")}</td><td>${escapeHTML(a.time||"—")}</td><td>${escapeHTML(a.reason||"—")}</td><td><span class="badge blue">${escapeHTML(a.status||"—")}</span></td></tr>`).join("")||'<tr><td colspan="4" class="empty">لا توجد مواعيد لهذا المريض</td></tr>'}
+</tbody>
+</table></div>
+</div>
+</div>
+
+<div id="patientTab-notes" class="patient-tab-content">
+<div class="card">
 <div class="card-head"><h3>📝 الملاحظات الطبية</h3></div>
-<p style="color:var(--muted);line-height:1.8;white-space:pre-wrap">${escapeHTML(p.notes||"لا توجد ملاحظات")}</p>
+<p style="color:var(--muted);line-height:1.9;white-space:pre-wrap">${escapeHTML(p.notes||"لا توجد ملاحظات")}</p>
+</div>
+</div>
+
+<div id="patientTab-finance" class="patient-tab-content">
+<div class="card">
+<div class="card-head"><h3>💰 حسابات المريض</h3></div>
+<div class="stats" style="grid-template-columns:repeat(3,1fr)">
+<div class="stat"><h4>الإجمالي</h4><strong>${formatMoney(invoices.filter(i=>i.patientId===p.id).reduce((s,i)=>s+Number(i.total||0),0))}</strong></div>
+<div class="stat"><h4>المدفوع</h4><strong>${formatMoney(invoices.filter(i=>i.patientId===p.id).reduce((s,i)=>s+Number(i.paid||0),0))}</strong></div>
+<div class="stat"><h4>المتبقي</h4><strong>${formatMoney(invoices.filter(i=>i.patientId===p.id).reduce((s,i)=>s+Number(i.remaining||0),0))}</strong></div>
+</div>
+<div class="table-wrap" style="margin-top:18px"><table>
+<thead><tr><th>الخدمة</th><th>التاريخ</th><th>الإجمالي</th><th>المدفوع</th><th>المتبقي</th></tr></thead>
+<tbody>
+${invoices.filter(i=>i.patientId===p.id).map(i=>`<tr><td>${escapeHTML(i.service||"—")}</td><td>${i.date?new Date(i.date).toLocaleDateString("ar-IQ"):"—"}</td><td>${formatMoney(i.total)}</td><td>${formatMoney(i.paid)}</td><td>${formatMoney(i.remaining)}</td></tr>`).join("")||'<tr><td colspan="5" class="empty">لا توجد فواتير لهذا المريض</td></tr>'}
+</tbody>
+</table></div>
+</div>
 </div>
 
 `;
-
-
 window.openModal("profileModal");
 
 };
 
+
+window.switchPatientTab=function(tab,button){
+document.querySelectorAll(".patient-tab").forEach(b=>b.classList.remove("active"));
+document.querySelectorAll(".patient-tab-content").forEach(c=>c.classList.remove("active"));
+if(button)button.classList.add("active");
+const target=$("patientTab-"+tab);
+if(target)target.classList.add("active");
+};
 
 window.setToothStatus=function(number){
 

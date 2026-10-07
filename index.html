@@ -1186,11 +1186,12 @@ oninput="renderPatients()">
 <div class="modal-box">
 
 <div class="modal-head">
-<h2>إضافة مريض جديد</h2>
+<h2 id="patientModalTitle">إضافة مريض جديد</h2>
 <button class="close" onclick="closeModal('patientModal')">×</button>
 </div>
 
 <form onsubmit="savePatient(event)">
+<input id="editPatientId" type="hidden">
 
 <div class="form-grid">
 
@@ -1220,6 +1221,11 @@ oninput="renderPatients()">
 <div class="field full">
 <label>العنوان</label>
 <input id="pAddress">
+</div>
+
+<div class="field full">
+<label>التاريخ المرضي</label>
+<textarea id="pMedicalHistory" placeholder="الأمراض السابقة، العمليات، الحالات المزمنة..."></textarea>
 </div>
 
 <div class="field full">
@@ -1764,79 +1770,71 @@ toast("حدث خطأ في تحميل البيانات");
 
 /* PATIENTS */
 
-window.openPatient=function(){
+window.openPatient=function(id=null){
 
+$("editPatientId").value="";
 $("pName").value="";
-
 $("pPhone").value="";
-
 $("pBirth").value="";
-
+$("pGender").value="ذكر";
 $("pAddress").value="";
-
+$("pMedicalHistory").value="";
 $("pNotes").value="";
 
+$("patientModalTitle").textContent="إضافة مريض جديد";
 
 window.openModal("patientModal");
 
-};
+if(id){
+const p=patients.find(x=>x.id===id);
+if(!p)return;
 
+$("editPatientId").value=id;
+$("patientModalTitle").textContent="تعديل بيانات المريض";
+$("pName").value=p.name||"";
+$("pPhone").value=p.phone||"";
+$("pBirth").value=p.birth||"";
+$("pGender").value=p.gender||"ذكر";
+$("pAddress").value=p.address||"";
+$("pMedicalHistory").value=p.medicalHistory||"";
+$("pNotes").value=p.notes||"";
+}
+};
 
 window.savePatient=async function(e){
-
 e.preventDefault();
-
 const name=$("pName").value.trim();
-
 if(!name)return;
-
-
+const editId=$("editPatientId").value;
 try{
-
-await addDoc(
-
-collection(db,"patients"),
-
-{
-
+const data={
 name:name,
-
 phone:$("pPhone").value.trim(),
-
 birth:$("pBirth").value,
-
 gender:$("pGender").value,
-
 address:$("pAddress").value.trim(),
-
+medicalHistory:$("pMedicalHistory").value.trim(),
 notes:$("pNotes").value.trim(),
-
-teeth:{},
-
-createdAt:new Date().toISOString()
-
-}
-
-);
-
-
-window.closeModal("patientModal");
-
-await loadAllData();
-
-toast("تمت إضافة المريض بنجاح ✅");
-
-
-}catch(error){
-
-console.error(error);
-
-toast("تعذر حفظ المريض");
-
-}
-
+updatedAt:new Date().toISOString()
 };
 
+if(editId){
+await updateDoc(doc(db,"patients",editId),data);
+window.closeModal("patientModal");
+await loadAllData();
+if(currentPatientId===editId)viewPatient(editId);
+toast("تم تعديل بيانات المريض بنجاح ✅");
+}else{
+await addDoc(collection(db,"patients"),{...data,teeth:{},createdAt:new Date().toISOString()});
+window.closeModal("patientModal");
+await loadAllData();
+toast("تمت إضافة المريض بنجاح ✅");
+}
+}catch(error){
+console.error(error);
+toast(editId?"تعذر تعديل بيانات المريض":"تعذر حفظ المريض");
+}
+};
 
 window.deletePatient=async function(id){
 
@@ -1958,11 +1956,10 @@ $("profileContent").innerHTML=`
 
 <div>
 
-<h2 style="margin-top:0">
-
-${escapeHTML(p.name)}
-
-</h2>
+<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+<h2 style="margin:0">${escapeHTML(p.name)}</h2>
+<button class="btn secondary" onclick="openPatient('${p.id}')">✏️ تعديل البيانات</button>
+</div>
 
 <div class="info-list">
 
@@ -2116,20 +2113,13 @@ font-size:11px;
 
 
 <div class="card" style="margin-top:20px">
-
-<div class="card-head">
-
-<h3>الملاحظات الطبية</h3>
-
+<div class="card-head"><h3>🏥 التاريخ المرضي</h3></div>
+<p style="color:var(--muted);line-height:1.8;white-space:pre-wrap">${escapeHTML(p.medicalHistory||"لا يوجد تاريخ مرضي مسجل")}</p>
 </div>
 
-
-<p style="color:var(--muted);line-height:1.8">
-
-${escapeHTML(p.notes||"لا توجد ملاحظات")}
-
-</p>
-
+<div class="card" style="margin-top:20px">
+<div class="card-head"><h3>📝 الملاحظات الطبية</h3></div>
+<p style="color:var(--muted);line-height:1.8;white-space:pre-wrap">${escapeHTML(p.notes||"لا توجد ملاحظات")}</p>
 </div>
 
 `;

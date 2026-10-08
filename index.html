@@ -1031,6 +1031,11 @@ oninput="renderPatients()">
 <strong id="invoiceCount">0</strong>
 </div>
 
+<div class="stat">
+<h4>أقساط متأخرة</h4>
+<strong id="overdueInstallments">0</strong>
+</div>
+
 </div>
 
 <div class="card" style="margin-top:18px">
@@ -1476,6 +1481,22 @@ onclick="closeModal('invoiceModal')">
 
 </form>
 
+</div>
+</div>
+
+
+<!-- INVOICE DETAILS MODAL -->
+
+<div id="invoiceDetailsModal" class="modal">
+<div class="modal-box">
+<div class="modal-head">
+<h2>تفاصيل الفاتورة</h2>
+<button class="close" onclick="closeModal('invoiceDetailsModal')">×</button>
+</div>
+<div id="invoiceDetailsContent"></div>
+<div class="actions">
+<button type="button" class="btn secondary" onclick="closeModal('invoiceDetailsModal')">إغلاق</button>
+</div>
 </div>
 </div>
 
@@ -2602,59 +2623,35 @@ window.openModal("invoiceModal");
 
 window.saveInvoice=async function(e){
 e.preventDefault();
-
 const editId=$("editInvoiceId").value;
 const patientId=$("iPatient").value;
 const patient=patients.find(p=>p.id===patientId);
 if(!patient){toast("أضف مريضًا أولًا");return;}
-
-const total=Number($("iTotal").value||0);
-const paid=Math.min(Number($("iPaid").value||0),total);
-const installmentCount=Math.max(1,Number($("iInstallments").value||1));
+const total=Math.max(0,Number($("iTotal").value||0));
+const paid=Math.min(Math.max(0,Number($("iPaid").value||0)),total);
+const installmentCount=Math.max(1,Math.floor(Number($("iInstallments").value||1)));
 const firstDueDate=$("iFirstDueDate").value||todayInputDate();
-
+if(total<=0){toast("أدخل إجمالي الفاتورة");return;}
 try{
-if(editId){
-const old=invoices.find(i=>i.id===editId);
-if(!old)return;
 const remainingAmount=Math.max(total-paid,0);
-const oldPaidInstallments=Number(old.installmentPaid||0);
-const paidInstallments=remainingAmount===0?installmentCount:Math.min(oldPaidInstallments,installmentCount);
+if(editId){
+const old=invoices.find(i=>i.id===editId); if(!old)return;
+const history=Array.isArray(old.paymentHistory)?old.paymentHistory:[];
+const paidInstallments=remainingAmount===0?installmentCount:Math.min(Number(old.installmentPaid||0),installmentCount);
 const remainingInstallments=remainingAmount===0?0:Math.max(installmentCount-paidInstallments,0);
-const installmentAmount=installmentCount>0?Math.ceil((remainingAmount/installmentCount)*100)/100:remainingAmount;
+const installmentAmount=remainingAmount>0?Math.ceil((remainingAmount/Math.max(remainingInstallments||installmentCount,1))*100)/100:0;
 const nextDueDate=remainingAmount===0?null:(old.nextDueDate||firstDueDate);
-await updateDoc(doc(db,"invoices",editId),{
-patientId,
-patientName:patient.name,
-service:$("iService").value.trim(),
-total,
-paid,
-remaining:remainingAmount,
-installmentCount,
-installmentPaid:paidInstallments,
-installmentRemaining:remainingInstallments,
-installmentAmount,
-firstDueDate,
-nextDueDate,
-updatedAt:new Date().toISOString()
-});
+await updateDoc(doc(db,"invoices",editId),{patientId,patientName:patient.name,service:$("iService").value.trim(),total,paid,remaining:remainingAmount,installmentCount,installmentPaid:paidInstallments,installmentRemaining:remainingInstallments,installmentAmount,firstDueDate,nextDueDate,paymentHistory:history,updatedAt:new Date().toISOString()});
 toast("تم تعديل الفاتورة بنجاح ✅");
 }else{
-const remainingAmount=Math.max(total-paid,0);
-const installmentAmount=installmentCount>0?Math.ceil((remainingAmount/installmentCount)*100)/100:remainingAmount;
+const installmentAmount=remainingAmount>0?Math.ceil((remainingAmount/installmentCount)*100)/100:0;
 const paidInstallments=remainingAmount===0?installmentCount:0;
 const remainingInstallments=remainingAmount===0?0:installmentCount;
 const nextDueDate=remainingAmount===0?null:firstDueDate;
-await addDoc(collection(db,"invoices"),{
-patientId,patientName:patient.name,service:$("iService").value.trim(),total,paid,
-remaining:remainingAmount,installmentCount,installmentPaid:paidInstallments,
-installmentRemaining:remainingInstallments,installmentAmount,firstDueDate,nextDueDate,
-date:new Date().toISOString(),createdAt:new Date().toISOString()
-});
+await addDoc(collection(db,"invoices"),{patientId,patientName:patient.name,service:$("iService").value.trim(),total,paid,remaining:remainingAmount,installmentCount,installmentPaid:paidInstallments,installmentRemaining:remainingInstallments,installmentAmount,firstDueDate,nextDueDate,paymentHistory:[],date:new Date().toISOString(),createdAt:new Date().toISOString()});
 toast("تم حفظ الفاتورة ونظام الأقساط ✅");
 }
-window.closeModal("invoiceModal");
-await loadAllData();
+window.closeModal("invoiceModal"); await loadAllData();
 }catch(error){console.error(error);toast(editId?"تعذر تعديل الفاتورة":"تعذر حفظ الفاتورة");}
 };
 
@@ -2667,16 +2664,6 @@ await loadAllData();
 toast("تم حذف الفاتورة");
 }catch(error){console.error(error);toast("تعذر حذف الفاتورة");}
 };
-
-// حذف الفاتورة عبر مستمع موثوق بدل الاعتماد على onclick داخل الجدول
-document.addEventListener("click",function(event){
-const button=event.target.closest("[data-delete-invoice]");
-if(!button)return;
-event.preventDefault();
-event.stopPropagation();
-const id=button.getAttribute("data-delete-invoice");
-if(id) window.deleteInvoice(id);
-});
 
 
 window.openInstallmentPayment=function(id){
@@ -2714,18 +2701,24 @@ if(!invoice)return;
 let amount=Number($("installmentPaymentAmount").value||0);
 const remaining=Number(invoice.remaining||0);
 amount=Math.min(Math.max(amount,0),remaining);
+if(amount<=0){toast("أدخل مبلغ الدفعة");return;}
 
-if(amount<=0){
-toast("أدخل مبلغ الدفعة");
-return;
-}
-
+const installmentCount=Math.max(1,Number(invoice.installmentCount||1));
 const oldPaidInstallments=Number(invoice.installmentPaid||0);
-const oldRemainingInstallments=Number(invoice.installmentRemaining||invoice.installmentCount||1);
+const oldRemainingInstallments=Number(invoice.installmentRemaining ?? (remaining>0?installmentCount:0));
 const newPaid=Number(invoice.paid||0)+amount;
 const newRemaining=Math.max(Number(invoice.total||0)-newPaid,0);
-const newPaidInstallments=Math.min(oldPaidInstallments+1,Number(invoice.installmentCount||1));
+const newPaidInstallments=Math.min(oldPaidInstallments+1,installmentCount);
 const newRemainingInstallments=newRemaining<=0?0:Math.max(oldRemainingInstallments-1,0);
+const paymentHistory=Array.isArray(invoice.paymentHistory)?invoice.paymentHistory.slice():[];
+const paymentDate=new Date().toISOString();
+paymentHistory.push({
+amount,
+date:paymentDate,
+dueDate:invoice.nextDueDate||null,
+balanceAfter:newRemaining,
+installmentNumber:newPaidInstallments
+});
 const nextDueDate=newRemaining<=0
 ?null
 :addMonths(invoice.firstDueDate||todayInputDate(),newPaidInstallments);
@@ -2737,89 +2730,88 @@ remaining:newRemaining,
 installmentPaid:newPaidInstallments,
 installmentRemaining:newRemainingInstallments,
 nextDueDate,
-lastPaymentDate:new Date().toISOString(),
-updatedAt:new Date().toISOString()
+paymentHistory,
+lastPaymentDate:paymentDate,
+updatedAt:paymentDate
 });
-
 window.closeModal("installmentModal");
 await loadAllData();
-toast(newRemaining<=0?"تم تسديد الفاتورة بالكامل ✅":"تم تسديد القسط بنجاح ✅");
+toast(newRemaining<=0?"تم تسديد الفاتورة بالكامل ✅":"تم تسجيل الدفعة بنجاح ✅");
 }catch(error){
 console.error(error);
 toast("تعذر تسجيل الدفعة");
 }
 };
 
-
 window.viewInvoice=function(id){
 const invoice=invoices.find(i=>i.id===id);
 if(!invoice)return;
-
-const paidInstallments=Number(invoice.installmentPaid||0);
-const remainingInstallments=Number(invoice.installmentRemaining ?? (invoice.remaining>0?invoice.installmentCount||1:0));
 const installmentCount=Number(invoice.installmentCount||1);
+const paidInstallments=Number(invoice.installmentPaid||0);
+const remainingInstallments=Number(invoice.installmentRemaining ?? (invoice.remaining>0?installmentCount:0));
+const history=Array.isArray(invoice.paymentHistory)?invoice.paymentHistory:[];
+const overdue=Number(invoice.remaining||0)>0 && invoice.nextDueDate && invoice.nextDueDate<todayInputDate();
 
-$("installmentInfo").innerHTML=`
-<div class="info-list">
+$("invoiceDetailsContent").innerHTML=`
+<div class="grid">
+<div class="card"><div class="info-list">
 <div class="info"><small>المريض</small><strong>${escapeHTML(invoice.patientName||"—")}</strong></div>
 <div class="info"><small>الخدمة</small><strong>${escapeHTML(invoice.service||"—")}</strong></div>
+<div class="info"><small>تاريخ الفاتورة</small><strong>${formatDate((invoice.date||invoice.createdAt||"").split("T")[0])}</strong></div>
 <div class="info"><small>الإجمالي</small><strong>${formatMoney(invoice.total)}</strong></div>
 <div class="info"><small>المدفوع</small><strong>${formatMoney(invoice.paid)}</strong></div>
 <div class="info"><small>المتبقي</small><strong>${formatMoney(invoice.remaining)}</strong></div>
+</div></div>
+<div class="card"><div class="info-list">
 <div class="info"><small>خطة الأقساط</small><strong>${installmentCount} دفعة × ${formatMoney(invoice.installmentAmount||0)}</strong></div>
 <div class="info"><small>تم تسديد</small><strong>${paidInstallments} من ${installmentCount}</strong></div>
-<div class="info"><small>باقي</small><strong>${remainingInstallments} دفعة</strong></div>
-<div class="info"><small>القسط القادم</small><strong>${formatDate(invoice.nextDueDate)}</strong></div>
+<div class="info"><small>باقي الدفعات</small><strong>${remainingInstallments} دفعة</strong></div>
+<div class="info"><small>القسط القادم</small><strong>${formatDate(invoice.nextDueDate)} ${overdue?"⚠️ متأخر":""}</strong></div>
+</div></div>
+</div>
+<div class="card" style="margin-top:16px">
+<div class="card-head"><h3>سجل الدفعات</h3></div>
+${history.length?`<div class="table-wrap"><table><thead><tr><th>#</th><th>التاريخ</th><th>المبلغ</th><th>المتبقي بعد الدفعة</th></tr></thead><tbody>${history.map((p,n)=>`<tr><td>${n+1}</td><td>${formatDate((p.date||"").split("T")[0])}</td><td>${formatMoney(p.amount)}</td><td>${formatMoney(p.balanceAfter)}</td></tr>`).join("")}</tbody></table></div>`:`<div class="empty">لا توجد دفعات مسجلة بعد</div>`}
 </div>`;
-
-$("paymentInvoiceId").value=id;
-$("installmentPaymentAmount").value=Number(invoice.installmentAmount||invoice.remaining||0);
-$("installmentPaymentAmount").max=Number(invoice.remaining||0);
-
-window.openModal("installmentModal");
+window.openModal("invoiceDetailsModal");
 };
 
-
 function renderInvoices(){
-
 const tbody=$("invoicesTable");
-
-if(!invoices.length){
-tbody.innerHTML=
-'<tr><td colspan="8" class="empty">لا توجد فواتير</td></tr>';
-return;
-}
+const income=invoices.reduce((sum,i)=>sum+Number(i.total||0),0);
+const paid=invoices.reduce((sum,i)=>sum+Number(i.paid||0),0);
+const debt=invoices.reduce((sum,i)=>sum+Number(i.remaining||0),0);
+const today=todayInputDate();
+const overdueCount=invoices.filter(i=>Number(i.remaining||0)>0&&i.nextDueDate&&i.nextDueDate<today).length;
+$("financeIncome").textContent=formatMoney(income);
+$("financePaid").textContent=formatMoney(paid);
+$("financeDebt").textContent=formatMoney(debt);
+$("invoiceCount").textContent=invoices.length;
+if($("overdueInstallments")) $("overdueInstallments").textContent=overdueCount;
+if(!invoices.length){tbody.innerHTML='<tr><td colspan="8" class="empty">لا توجد فواتير</td></tr>';return;}
 
 tbody.innerHTML=invoices.map(i=>{
 const installmentCount=Number(i.installmentCount||1);
 const remainingInstallments=Number(i.installmentRemaining ?? (i.remaining>0?installmentCount:0));
-const installmentText=installmentCount>1
-?`${remainingInstallments} من ${installmentCount}`
-:"بدون أقساط";
+const installmentText=installmentCount>1?`${remainingInstallments} من ${installmentCount}`:"بدون أقساط";
 const fullyPaid=Number(i.remaining||0)<=0;
-return `
-<tr>
-<td>${escapeHTML(i.patientName)}</td>
+const overdue=!fullyPaid&&i.nextDueDate&&i.nextDueDate<today;
+return `<tr>
+<td>${escapeHTML(i.patientName||"—")}</td>
 <td>${escapeHTML(i.service||"—")}</td>
 <td>${formatMoney(i.total)}</td>
 <td>${formatMoney(i.paid)}</td>
 <td>${formatMoney(i.remaining)}</td>
-<td><strong>${installmentText}</strong>${!fullyPaid&&i.nextDueDate?`<br><small style="color:var(--muted)">القادم: ${formatDate(i.nextDueDate)}</small>`:""}</td>
-<td>
-<span class="badge ${fullyPaid?"green":"yellow"}">
-${fullyPaid?"مدفوعة":"متبقي"}
-</span>
-</td>
-<td>
-<div style="display:flex;gap:6px;flex-wrap:wrap">
-${!fullyPaid?`<button class="btn" onclick="openInstallmentPayment('${i.id}')">تسديد دفعة</button>`:`<button class="btn secondary" onclick="viewInvoice('${i.id}')">تفاصيل</button>`}
+<td><strong>${installmentText}</strong>${!fullyPaid&&i.nextDueDate?`<br><small style="color:${overdue?'#dc2626':'var(--muted)'}">${overdue?'⚠️ متأخر: ':'القادم: '}${formatDate(i.nextDueDate)}</small>`:""}</td>
+<td><span class="badge ${fullyPaid?'green':overdue?'red':'yellow'}">${fullyPaid?'مدفوعة':overdue?'متأخرة':'متبقي'}</span></td>
+<td><div style="display:flex;gap:6px;flex-wrap:wrap">
+${!fullyPaid?`<button class="btn" onclick="openInstallmentPayment('${i.id}')">تسديد دفعة</button>`:''}
+<button class="btn secondary" onclick="viewInvoice('${i.id}')">تفاصيل</button>
 <button class="btn secondary" onclick="openInvoice('${i.id}')">✏️ تعديل</button>
-<button type="button" class="btn danger" data-delete-invoice="${escapeHTML(i.id)}">🗑️ حذف</button>
-</div>
-</td>
+<button class="btn danger" onclick="deleteInvoice('${i.id}')">🗑️ حذف</button>
+</div></td>
 </tr>`;
 }).join("");
-
 }
 
 
